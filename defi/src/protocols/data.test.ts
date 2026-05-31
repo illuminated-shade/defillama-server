@@ -263,7 +263,7 @@ test("no surprise category", async () => {
     'Leveraged Farming',
     'RWA Lending',
     'Options Vault',
-    'Liquidity manager',
+    'Liquidity Manager',
     'Staking Pool',
     'Partially Algorithmic Stablecoin',
     'SoFi',
@@ -330,6 +330,7 @@ test("no surprise category", async () => {
     "Block Builders",
     "Stablecoin Wrapper",
     "Crypto Card Issuer",
+    "Interest Rate Derivatives"
   ]
   for (const protocol of protocols) {
     expect(whitelistedCategories).toContain(protocol.category);

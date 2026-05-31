@@ -84,7 +84,7 @@ async function storeData(subPath: string, data: any) {
   const dirPath = path.dirname(filePath)
   await ensureDirExists(dirPath)
   try {
-    return await fs.promises.writeFile(filePath, JSON.stringify(data))
+    return await fs.promises.writeFile(filePath, typeof data === 'string' ? data : JSON.stringify(data))
   } catch (e) {
     log(`Error storing data to ${filePath}:`, (e as any)?.message)
     return null
@@ -140,7 +140,7 @@ export async function writeToPGCache(key: string, data: any) {
 
 // it is no longer needed thanks to change to deleteFromPGCache
 // ANY CHANGE TO THIS VALUE NEEDS TO BE SYNCED WITH A CHANGE ON https://github.com/DefiLlama/born-to-llama/blob/master/src/commands/deleteCache.ts#L30 TOO
-let TVL_CACHE_FOLDER = 'tvl-cache-daily-v0.10'  // update the version number to reset the cache
+let TVL_CACHE_FOLDER = 'tvl-cache-daily-v0.11'  // update the version number to reset the cache
 if (process.env.LLAMA_RUN_LOCAL === 'true') {
   TVL_CACHE_FOLDER = 'tvl-cache-daily'
 }

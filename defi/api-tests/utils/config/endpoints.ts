@@ -19,6 +19,7 @@ function getBaseUrl(url: string, category: string): string {
 // Helper to get Pro API base URL with API key
 function getProApiBaseUrl(): string {
   const proUrl = process.env.BETA_PRO_API_URL || 'https://pro-api.llama.fi';
+  // console.log('proUrl', proUrl);
   if (proUrl.includes('/api-key/')) {
     return proUrl;
   }
@@ -40,6 +41,11 @@ export const BASE_URLS = {
   PERPS: getProApiBaseUrl(),
   ETFS: getProApiBaseUrl(),
   NARRATIVES: getProApiBaseUrl(),
+  RWA: getProApiBaseUrl() + '/rwa',
+  RWA_PERPS: getProApiBaseUrl() + '/rwa-perps',
+  NFT_VOLUME: getBaseUrl(process.env.BETA_API_URL || 'https://api.llama.fi', 'nft-volume'),
+  ACTIVE_USERS_DIM: getBaseUrl(process.env.BETA_API_URL || 'https://api.llama.fi', 'active-users'),
+  NEW_USERS_DIM: getBaseUrl(process.env.BETA_API_URL || 'https://api.llama.fi', 'new-users'),
 };
 
 const stablecoinsBaseUrl = BASE_URLS.STABLECOINS;
@@ -61,9 +67,22 @@ export const TVL = {
   HISTORICAL_CHAIN_TVL: '/v2/historicalChainTvl',
   HISTORICAL_CHAIN_TVL_BY_CHAIN: (chain: string) => `/v2/historicalChainTvl/${chain}`,
   CHAINS_V2: '/v2/chains',
-  CHAIN_ASSETS: '/chainAssets',
-  TOKEN_PROTOCOLS: (symbol: string) => `/tokenProtocols/${symbol}`,
-  INFLOWS: (protocol: string, timestamp: number) => `/inflows/${protocol}/${timestamp}`,
+} as const;
+
+// Pro-only TVL endpoints (free api.llama.fi returns 402 for these)
+export const TVL_PRO = {
+  BASE_URL: getProApiBaseUrl(),
+  CHAIN_ASSETS: '/api/chainAssets',
+  TOKEN_PROTOCOLS: (symbol: string) => `/api/tokenProtocols/${symbol}`,
+  INFLOWS: (protocol: string, timestamp: number) => `/api/inflows/${protocol}/${timestamp}`,
+} as const;
+
+export const TVL_V2 = {
+  BASE_URL: BASE_URLS.TVL,
+  PROTOCOL: (protocol: string) => `/v2/metrics/tvl/protocol/${protocol}`,
+  CHARTS: (protocol: string) => `/v2/chart/tvl/protocol/${protocol}`,
+  CHARTS_CHAIN_BREAKDOWN: (protocol: string) => `/v2/chart/tvl/protocol/${protocol}/chain-breakdown`,
+  CHARTS_TOKEN_BREAKDOWN: (protocol: string) => `/v2/chart/tvl/protocol/${protocol}/token-breakdown`,
 } as const;
 
 export const STABLECOINS = {
@@ -91,6 +110,7 @@ export const COINS = {
   PERCENTAGE: (coins: string) => `/percentage/${coins}`,
   PRICES_FIRST: (coins: string) => `/prices/first/${coins}`,
   BLOCK: (chain: string, timestamp: number) => `/block/${chain}/${timestamp}`,
+  BATCH_HISTORICAL: '/batchHistorical',
 } as const;
 
 export const VOLUMES = {
@@ -110,6 +130,13 @@ export const FEES = {
   SUMMARY_FEES: (protocol: string) => `/summary/fees/${protocol}`,
 } as const;
 
+export const FEES_V2 = {
+  BASE_URL: BASE_URLS.TVL,
+  PROTOCOL: (protocol: string) => `/v2/metrics/fees/protocol/${protocol}`,
+  CHARTS: (protocol: string) => `/v2/chart/fees/protocol/${protocol}`,
+  CHARTS_CHAIN_BREAKDOWN: (protocol: string) => `/v2/chart/fees/protocol/${protocol}/chain-breakdown`,
+} as const;
+
 export const BRIDGES = {
   BASE_URL: BASE_URLS.BRIDGES,
   BRIDGES: '/bridges/bridges',
@@ -117,12 +144,6 @@ export const BRIDGES = {
   BRIDGE_VOLUME: (chain: string) => `/bridges/bridgevolume/${chain}`,
   BRIDGE_DAY_STATS: (timestamp: number, chain: string) => `/bridges/bridgedaystats/${timestamp}/${chain}`,
   TRANSACTIONS: (id: string) => `/bridges/transactions/${id}`,
-} as const;
-
-export const USERS = {
-  BASE_URL: BASE_URLS.USERS,
-  ACTIVE_USERS: '/api/activeUsers',
-  USER_DATA: (type: string, protocolId: string) => `/api/userData/${type}/${protocolId}`,
 } as const;
 
 export const MAIN_PAGE = {
@@ -160,6 +181,12 @@ export const PERPS = {
   SUMMARY_DERIVATIVES: (protocol: string) => `/api/summary/derivatives/${protocol}`,
 } as const;
 
+export const PERPS_V2 = {
+  BASE_URL: BASE_URLS.TVL,
+  SUMMARY_DERIVATIVES: (protocol: string) => `/v2/metrics/derivatives/protocol/${protocol}`,
+  CHART_CHAIN_BREAKDOWN_DERIVATIVES: (protocol: string) => `/v2/chart/derivatives/protocol/${protocol}/chain-breakdown`,
+} as const;
+
 export const ETFS = {
   BASE_URL: getProApiBaseUrl(),
   SNAPSHOT: '/etfs/snapshot',
@@ -176,22 +203,99 @@ export const TOKEN_LIQUIDITY = {
   HISTORICAL_LIQUIDITY: (token: string) => `/api/historicalLiquidity/${token}`,
 } as const;
 
+export const NFT_VOLUME = {
+  BASE_URL: BASE_URLS.NFT_VOLUME,
+  OVERVIEW: '/overview/nft-volume',
+  OVERVIEW_CHAIN: (chain: string) => `/overview/nft-volume/${chain}`,
+  SUMMARY: (protocol: string) => `/summary/nft-volume/${protocol}`,
+} as const;
+
+export const ACTIVE_USERS_DIM = {
+  BASE_URL: BASE_URLS.ACTIVE_USERS_DIM,
+  OVERVIEW: '/overview/active-users',
+  OVERVIEW_CHAIN: (chain: string) => `/overview/active-users/${chain}`,
+  SUMMARY: (protocol: string) => `/summary/active-users/${protocol}`,
+} as const;
+
+export const NEW_USERS_DIM = {
+  BASE_URL: BASE_URLS.NEW_USERS_DIM,
+  OVERVIEW: '/overview/new-users',
+  OVERVIEW_CHAIN: (chain: string) => `/overview/new-users/${chain}`,
+  SUMMARY: (protocol: string) => `/summary/new-users/${protocol}`,
+} as const;
+
+export const RWA = {
+  BASE_URL: BASE_URLS.RWA,
+  CURRENT: '/current',
+  LIST: '/list',
+  STATS: '/stats',
+  ID_MAP: '/id-map',
+  CHART_CHAIN_BREAKDOWN: '/chart/chain-breakdown',
+  CHART_CATEGORY_BREAKDOWN: '/chart/category-breakdown',
+  CHART_PLATFORM_BREAKDOWN: '/chart/platform-breakdown',
+  CHART_ASSET_GROUP_BREAKDOWN: '/chart/assetGroup-breakdown',
+  CHART_BY_ID: (id: string) => `/chart/${id}`,
+  CHART_BY_NAME: (name: string) => `/chart/name/${name}`,
+  CHART_BY_CHAIN: (chain: string) => `/chart/chain/${chain}`,
+  CHART_BY_CHAIN_ASSET_BREAKDOWN: (chain: string) => `/chart/chain/${encodeURIComponent(chain)}/asset-breakdown`,
+  CHART_ASSET: (id: string) => `/chart/asset/${id}`,
+  CHART_BY_CATEGORY: (category: string) => `/chart/category/${category}`,
+  CHART_BY_CATEGORY_ASSET_BREAKDOWN: (category: string) => `/chart/category/${encodeURIComponent(category)}/asset-breakdown`,
+  CHART_BY_PLATFORM: (platform: string) => `/chart/platform/${platform}`,
+  CHART_BY_PLATFORM_ASSET_BREAKDOWN: (platform: string) => `/chart/platform/${encodeURIComponent(platform)}/asset-breakdown`,
+  CHART_BY_ASSET_GROUP: (assetGroup: string) => `/chart/assetGroup/${encodeURIComponent(assetGroup)}`,
+  CHART_BY_ASSET_GROUP_ASSET_BREAKDOWN: (assetGroup: string) => `/chart/assetGroup/${encodeURIComponent(assetGroup)}/asset-breakdown`,
+  RWA_BY_ID: (id: string) => `/rwa/${id}`,
+  ASSET_BY_TICKER: (ticker: string) => `/asset/${ticker}`,
+  CATEGORY: (category: string) => `/category/${category}`,
+  ASSET_GROUP: (assetGroup: string) => `/assetGroup/${encodeURIComponent(assetGroup)}`,
+  CHAIN: (chain: string) => `/chain/${chain}`,
+  FLOWS: (id: string) => `/flows/${encodeURIComponent(id)}`,
+} as const;
+
+export const RWA_PERPS = {
+  BASE_URL: BASE_URLS.RWA_PERPS,
+  CURRENT: '/current',
+  LIST: '/list',
+  STATS: '/stats',
+  ID_MAP: '/id-map',
+  MARKET_BY_ID: (id: string) => `/market/${encodeURIComponent(id)}`,
+  CONTRACT: (contract: string) => `/contract/${encodeURIComponent(contract)}`,
+  VENUE: (venue: string) => `/venue/${encodeURIComponent(venue)}`,
+  CATEGORY: (category: string) => `/category/${encodeURIComponent(category)}`,
+  ASSET_GROUP: (assetGroup: string) => `/assetGroup/${encodeURIComponent(assetGroup)}`,
+  CHART_BY_ID: (id: string) => `/chart/${encodeURIComponent(id)}`,
+  CHART_BY_VENUE: (venue: string) => `/chart/venue/${encodeURIComponent(venue)}`,
+  CHART_BY_CATEGORY: (category: string) => `/chart/category/${encodeURIComponent(category)}`,
+  CHART_OVERVIEW_BREAKDOWN: '/chart/overview-breakdown',
+  CHART_CONTRACT_BREAKDOWN: '/chart/contract-breakdown',
+  FUNDING: (id: string) => `/funding/${encodeURIComponent(id)}`,
+} as const;
+
 export const endpoints = {
   TVL,
+  TVL_PRO,
   STABLECOINS,
   YIELDS,
   COINS,
   VOLUMES,
   FEES,
   BRIDGES,
-  USERS,
   MAIN_PAGE,
   UNLOCKS,
   YIELDS_PRO,
   PERPS,
+  PERPS_V2,
   ETFS,
   NARRATIVES,
   TOKEN_LIQUIDITY,
+  RWA,
+  RWA_PERPS,
+  TVL_V2,
+  FEES_V2,
+  NFT_VOLUME,
+  ACTIVE_USERS_DIM,
+  NEW_USERS_DIM,
 } as const;
 
 export const API_CONFIG = {

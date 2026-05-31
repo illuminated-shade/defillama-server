@@ -34,6 +34,8 @@ import opal from "./opal";
 import gmdV2 from "./gmdV2";
 import { getApi } from "../utils/sdk";
 import getWrites from "../utils/getWrites";
+import cap from "./cap";
+import gohm from "./gohm";
 
 export { glp };
 
@@ -122,7 +124,8 @@ export async function unknownTokens2(timestamp: number = 0) {
       { pool: "0x604bd24343134066c16ffc3efce5d3ca160c1fee", unknown: "0x5b52bfb8062ce664d74bbcd4cd6dc7df53fd7233", known: "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c", },
       { pool: "0xC597952437Fa67B4a28bb03B19BF786AD26A4036", unknown: "0x1702EC380e924B0E12d5C2e838B6b91A1fB3A052", known: "0x55d398326f99059fF775485246999027B3197955", },
       { pool: "0xeAdff72aBdA0709CD795CEFa3A44f45a22440144", unknown: "0x1f88e9956c8f8f64c8d5fef5ed8a818e2237112c", known: "0x55d398326f99059fF775485246999027B3197955", },
-      { pool: "0x7245D36825acFE58dE64E1b4A5F6d95662628faA", unknown: "0xafbe3b8b0939a5538DE32f7752A78e08C8492295", known: "0x74ccbe53F77b08632ce0CB91D3A545bF6B8E0979" }
+      { pool: "0x7245D36825acFE58dE64E1b4A5F6d95662628faA", unknown: "0xafbe3b8b0939a5538DE32f7752A78e08C8492295", known: "0x74ccbe53F77b08632ce0CB91D3A545bF6B8E0979", },
+      { pool: "0xfc18301b94a77d91015bb90d5249827c506846ae", unknown: "0xf6718b2701D4a6498eF77D7c152b2137Ab28b8A3", known: "0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c", confidence: 1 },
     ],
     ethereum: [
       { pool: "0x4b4237b385bd6eaf3ef6b20dbcaed4158a688af7", unknown: "0xD86c0B9b686f78a7A5C3780f03e700dbbAd40e01", known: "0xdac17f958d2ee523a2206206994597c13d831ec7", },
@@ -136,6 +139,9 @@ export async function unknownTokens2(timestamp: number = 0) {
     avax: [
       { pool: "0x2071a39da7450d68e4f4902774203df208860da2", unknown: "0x3712871408a829c5cd4e86da1f4ce727efcd28f6", known: "0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7", },
       { pool: "0x8a3EcB040d270ca92E122104e2d622b71c89E3cE", unknown: "0x09EF821c35B4577f856cA416377Bd2ddDBD3d0C9", known: "0x152b9d0FdC40C096757F570A51E494bd4b943E50", },
+      { pool: "0x083Fa2AcD819dd33B57cB918A4f47c14668fdCD2", unknown: "0x6c960648d5F16f9e12895C28655cc6Dd73B660f7", known: "0x3C594084dC7AB1864AC69DFd01AB77E8f65B83B7", },
+      { pool: "0xb568658A197A6a3436CFe1a9e6A137890c7b2840", unknown: "0x6214D13725d458890a8EF39ECB2578BdfCd82170", known: "0x3C594084dC7AB1864AC69DFd01AB77E8f65B83B7", },
+      { pool: "0xC573C783270057cB420a4Ba2523dB70E7D385Ff0", unknown: "0x1ea53822f9B2a860A7d20C6D2560Fd07db7CFF85", known: "0x3C594084dC7AB1864AC69DFd01AB77E8f65B83B7", },
     ],
     fantom: [
       { pool: "0x0E8f117a563Be78Eb5A391A066d0d43Dd187a9E0", unknown: "0x07bb65faac502d4996532f834a1b7ba5dc32ff96", known: "0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83", },
@@ -532,19 +538,31 @@ async function karakWrapped(timestamp: number = 0, writes: Write[] = []) {
 async function matrixdock(timestamp: number = 0, writes: Write[] = []) {
   const chain = 'ethereum'
   const api = await getApi(chain, timestamp)
-  // get gold price from chainlink oracle
-  const price = (await api.call({ abi: 'uint256:latestAnswer', target: '0x214eD9Da11D2fbe465a6fc601a91E62EbEc1a0D6' })) / 1e8
+  const [rawGoldPrice, rawSilverPrice, rawXagmOzPerToken] = await Promise.all([
+    api.call({ abi: 'uint256:latestAnswer', target: '0x214eD9Da11D2fbe465a6fc601a91E62EbEc1a0D6' }),
+    api.call({ abi: 'uint256:latestAnswer', target: '0x379589227b15F1a12195D3f2d90bBc9F31f95235', permitFailure: true }),
+    api.call({ abi: 'uint256:ozPerToken', target: '0x123ffe0a3C62878dcbee2742227dc8990058d9E1', permitFailure: true }),
+  ])
   const TROY_OUNCE_CONVERSION = 1.097142857;
-  const goldPriceInTroyOunces = price * TROY_OUNCE_CONVERSION;
-  const ethereumPricesObject = {
-    '0x2103E845C5E135493Bb6c2A4f0B8651956eA8682': { price: goldPriceInTroyOunces, }
+  const goldPrice = rawGoldPrice / 1e8;
+  const goldPriceInTroyOunces = goldPrice * TROY_OUNCE_CONVERSION;
+  const ethereumPricesObject: any = {
+    '0x2103E845C5E135493Bb6c2A4f0B8651956eA8682': { price: goldPriceInTroyOunces, },
   }
   const bscPricesObject = {
     '0x23AE4fd8E7844cdBc97775496eBd0E8248656028': { price: goldPriceInTroyOunces, }
   }
+  const suiPricesObject: any = {}
+  if (rawSilverPrice && rawXagmOzPerToken) {
+    const xagmPrice = rawSilverPrice / 1e8 * rawXagmOzPerToken / 1e9;
+    ethereumPricesObject['0x123ffe0a3C62878dcbee2742227dc8990058d9E1'] = { price: xagmPrice, }
+    suiPricesObject['0x64bddec0f898ccaa022b8a6e0a5f75d80f53177b87a9795dd15aefe9ac12ee6c::xagm::XAGM'] = { price: xagmPrice, symbol: 'XAGM', decimals: 9, }
+  }
 
   await getWrites({ chain, timestamp, pricesObject: ethereumPricesObject, projectName: "other", writes, })
-  return getWrites({ chain: 'bsc', timestamp, pricesObject: bscPricesObject, projectName: "other", writes, })
+  await getWrites({ chain: 'bsc', timestamp, pricesObject: bscPricesObject, projectName: "other", writes, })
+  if (!Object.keys(suiPricesObject).length) return writes;
+  return getWrites({ chain: 'sui', timestamp, pricesObject: suiPricesObject, projectName: "other", writes, })
 }
 
 
@@ -580,5 +598,7 @@ export const adapters = {
   reyaUSD,
   karakWrapped,
   matrixdock,
-  dsu
+  dsu, 
+  cap,
+  gohm
 };

@@ -4,7 +4,6 @@ import parentProtocols from "../parentProtocols";
 import { sluggifyString } from "../../utils/sluggify";
 import { importAdapter } from "../../utils/imports/importAdapter";
 import { isDoubleCounted } from "../../utils/normalizeChain";
-import tokenRightsMap from '../tokenRights';
 
 import fs from 'fs';
 import path from 'path';
@@ -56,11 +55,6 @@ protocols.forEach((protocol: Protocol) => {
     }
     parentChildProtocolMap[protocol.parentProtocol].push(protocol);
   }
-
-  const tr = tokenRightsMap[protocol.id]
-  if (tr)
-    protocol.tokenRights = tr
-
 })
 
 // if cmcId/gecko_id/symbol or address is missing in the parent metadata but found in the child metadata, copy it to the parent
@@ -70,14 +64,10 @@ parentProtocols.forEach((protocol: IParentProtocol) => {
     protocol.url = ""
   }
 
-  const tr = tokenRightsMap[protocol.id]
-  if (tr)
-    protocol.tokenRights = tr
-
   const childProtocols = parentChildProtocolMap[protocol.id] ?? []
   if (!childProtocols.length) return;
 
-  const fields = ['gecko_id', 'cmcId', 'symbol', 'address', 'tokenRights'] as (keyof Protocol)[]
+  const fields = ['gecko_id', 'cmcId', 'symbol', 'address'] as (keyof Protocol)[]
 
   for (const field of fields) {
     if ((protocol as Protocol)[field] !== undefined) continue;  // already has the field
@@ -110,7 +100,8 @@ export type _InternalProtocolMetadata = {
   misrepresentedTokens: boolean;
   methodology?: string;
   hallmarks?: Hallmark[];
-  tvlCodePath?: string;
+  tvlCodePath?: string | null;
+  treasuryCodePath?: string | null;
   hasChainSlug: (chainSlug: string) => boolean;
 }
 
@@ -138,6 +129,8 @@ export function setProtocolMetadata(protocol: Protocol) {
     else 
       modulePath = `projects/${modulePath}`
 
+    let treasuryModulePath = protocol.treasury ? `projects/treasury/${protocol.treasury}` : null
+
     const metadata = {
       id: protocol.id,
       category,
@@ -150,7 +143,8 @@ export function setProtocolMetadata(protocol: Protocol) {
       misrepresentedTokens: !!module.misrepresentedTokens,
       methodology: module.methodology,
       hallmarks: module.hallmarks,
-      tvlCodePath: `https://github.com/DefiLlama/DefiLlama-Adapters/blob/main/${modulePath}`,
+      tvlCodePath: modulePath.includes("dummy.js") ? null : `https://github.com/DefiLlama/DefiLlama-Adapters/blob/main/${modulePath}`,
+      treasuryCodePath: treasuryModulePath ? `https://github.com/DefiLlama/DefiLlama-Adapters/blob/main/${treasuryModulePath}` : null,
       hasChainSlug: (_chainSlug: string) => { throw new Error('Need to pull info from cache first') },
     }
 

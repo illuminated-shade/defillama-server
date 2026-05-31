@@ -145,13 +145,13 @@ function addToResponse(
       response[coinName] = {
         symbol: coin.symbol,
         confidence: coin.confidence,
-        decimals: coin.decimals,
-        prices: [{ timestamp: record.SK, price: record.price }],
+        decimals: coin.decimals == null ? undefined : Number(coin.decimals),
+        prices: [{ timestamp: record.SK, price: Number(record.price) }],
       };
     } else {
       response[coinName].prices.push({
         timestamp: record.SK,
-        price: record.price,
+        price: Number(record.price),
       });
     }
   });
@@ -206,7 +206,7 @@ async function fetchDBData(
             timestamp,
             params.searchWidth,
           );
-          if (finalCoin.SK === undefined) return;
+          if (finalCoin.SK === undefined || finalCoin.price === undefined) return;
           addToResponse(response, coin, finalCoin, PKTransforms);
         }),
       ),
@@ -228,7 +228,7 @@ async function fetchDBData(
       }
 
       for (const timestamp of timestamps) {
-        const finalCoin = findClosestRecord(records, timestamp, params.searchWidth);
+        const finalCoin = findClosestRecord(records.filter(r => r.price != undefined), timestamp, params.searchWidth);
         if (!finalCoin || finalCoin.SK === undefined) continue;
         addToResponse(response, coin, finalCoin, PKTransforms);
       }
